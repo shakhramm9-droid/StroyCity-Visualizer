@@ -1,0 +1,503 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>StroyCity Interior</title>
+
+    <style>
+        .result {
+    display: none;
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-top: 35px;
+    text-align: center;
+}
+
+.result h2 {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.result p {
+    color: #777;
+    margin-bottom: 20px;
+}
+
+#resultImage {
+    width: 100%;
+    max-width: 800px;
+    border-radius: 15px;
+}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        .header {
+            background: #f5c400;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #444;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 35px;
+        }
+
+        .upload-box {
+            background: white;
+            border-radius: 20px;
+            padding: 45px;
+            text-align: center;
+            border: 2px dashed #ccc;
+            margin-bottom: 35px;
+        }
+
+        .upload-box h2 {
+            margin-bottom: 12px;
+        }
+
+        .upload-box p {
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        .upload-button {
+            display: inline-block;
+            background: #f5c400;
+            color: #222;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #roomInput {
+            display: none;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 450px;
+            margin: 25px auto 0;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 18px;
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .product {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: 0.2s;
+        }
+
+        .product:hover {
+            transform: translateY(-3px);
+        }
+
+        .product.selected {
+            border-color: #f5c400;
+        }
+
+        .product img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .product-name {
+            font-weight: bold;
+            font-size: 17px;
+        }
+
+        .product-info {
+            color: #777;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .visualize {
+            width: 100%;
+            border: none;
+            background: #222;
+            color: white;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .visualize:hover {
+            background: #333;
+        }
+
+        @media (max-width: 700px) {
+            .products {
+                grid-template-columns: 1fr;
+            }
+
+            .title {
+                font-size: 28px;
+            }
+
+            .header {
+                padding: 18px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="header">
+    <div class="logo">STROYCITY</div>
+    <div class="subtitle">INTERIOR VISUALIZER</div>
+</header>
+
+
+<main class="container">
+
+    <h1 class="title">
+        Создайте свой интерьер
+    </h1>
+
+    <p class="description">
+        Загрузите фотографию комнаты и выберите ламинат и плинтус
+    </p>
+
+
+    <!-- Загрузка комнаты -->
+
+    <div class="upload-box">
+
+        <h2>📷 Загрузите фотографию комнаты</h2>
+
+        <p>
+            Лучше использовать фотографию, на которой хорошо виден пол
+        </p>
+
+        <label class="upload-button" for="roomInput">
+            Выбрать фотографию
+        </label>
+
+        <input
+            type="file"
+            id="roomInput"
+            accept="image/*"
+        >
+
+        <img id="preview" alt="Ваша комната">
+
+    </div>
+
+
+    <!-- Ламинат -->
+
+    <section class="section">
+
+        <h2 class="section-title">
+            1. Выберите ламинат
+        </h2>
+
+        <div class="products">
+
+            <div class="product"
+                 onclick="selectProduct(this, 'laminate')">
+
+                <img src="products/laminate-01.jpg">
+
+                <div class="product-name">
+                    Ламинат №1
+                </div>
+
+                <div class="product-info">
+                    Дуб Natural · 33 класс
+                </div>
+
+            </div>
+
+
+            <div class="product"
+                 onclick="selectProduct(this, 'laminate')">
+
+               <img src="products/laminate-02.jpg">
+
+                <div class="product-name">
+                    Ламинат №2
+                </div>
+
+                <div class="product-info">
+                    Дуб Nordic · 33 класс
+                </div>
+
+            </div>
+
+
+            <div class="product"
+                 onclick="selectProduct(this, 'laminate')">
+
+            <img src="products/laminate-03.jpg">
+
+                <div class="product-name">
+                    Ламинат №3
+                </div>
+
+                <div class="product-info">
+                    Дуб Classic · 32 класс
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Плинтус -->
+
+    <section class="section">
+
+        <h2 class="section-title">
+            2. Выберите плинтус
+        </h2>
+
+        <div class="products">
+
+            <div class="product"
+                 onclick="selectProduct(this, 'skirting')">
+
+                <img src="products/skirting-01.jpg">
+
+                <div class="product-name">
+                    Белый плинтус
+                </div>
+
+                <div class="product-info">
+                    Белый
+                </div>
+
+            </div>
+
+
+            <div class="product"
+                 onclick="selectProduct(this, 'skirting')">
+
+                <img src="products/skirting-02.jpg">
+
+                <div class="product-name">
+                    Плинтус Дуб
+                </div>
+
+                <div class="product-info">
+                    Древесный декор
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <button class="visualize" onclick="visualize()">
+        ✨ Визуализировать интерьер
+    </button>
+    <div id="result" class="result">
+
+    <h2>Ваш интерьер готов</h2>
+
+    <p>
+        Здесь появится результат визуализации
+    </p>
+
+    <img id="resultImage" alt="Результат визуализации">
+
+</div>
+
+</main>
+
+
+<script>
+
+    let selectedLaminate = null;
+    let selectedSkirting = null;
+
+
+    // Показываем загруженную комнату
+
+    document
+        .getElementById("roomInput")
+        .addEventListener("change", function(event) {
+
+            const file = event.target.files[0];
+
+            if (!file) return;
+
+            const imageURL = URL.createObjectURL(file);
+
+            const preview = document.getElementById("preview");
+
+            preview.src = imageURL;
+            preview.style.display = "block";
+
+        });
+
+
+    // Выбор товара
+
+    function selectProduct(element, type) {
+
+        const products =
+            element.parentElement.querySelectorAll(".product");
+
+        products.forEach(function(product) {
+            product.classList.remove("selected");
+        });
+
+        element.classList.add("selected");
+
+
+        if (type === "laminate") {
+            selectedLaminate = element;
+        }
+
+        if (type === "skirting") {
+            selectedSkirting = element;
+        }
+
+    }
+
+
+    // Визуализация
+
+    function visualize() {
+
+        const room =
+            document.getElementById("roomInput").files[0];
+
+
+        if (!room) {
+            alert("Сначала загрузите фотографию комнаты.");
+            return;
+        }
+
+
+        if (!selectedLaminate) {
+            alert("Выберите ламинат.");
+            return;
+        }
+
+
+        if (!selectedSkirting) {
+            alert("Выберите плинтус.");
+            return;
+        }
+
+
+        // Проверяем связь с сервером
+
+                // Отправляем фото и выбранные товары на сервер
+
+        const formData = new FormData();
+        formData.append("room", room);
+        formData.append("laminate", selectedLaminate.querySelector(".product-name").textContent);
+        formData.append("skirting", selectedSkirting.querySelector(".product-name").textContent);
+
+        fetch("http://localhost:3000/visualize", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+.then(data => {
+    console.log("Ответ сервера:", data);
+
+    if (data.resultUrl) {
+        resultImage.src = data.resultUrl;
+    } else {
+        alert("Не удалось получить результат от AI. Смотрите консоль.");
+        console.error("Ответ без картинки:", data);
+    }
+})
+.catch(error => {
+    console.error("Ошибка сервера:", error);
+    alert("Ошибка соединения с сервером.");
+});
+
+
+        // Показываем результат
+
+        const result =
+            document.getElementById("result");
+
+        const resultImage =
+            document.getElementById("resultImage");
+
+
+
+        result.style.display = "block";
+
+
+        result.scrollIntoView({
+            behavior: "smooth"
+        });
+
+    }
+
+</script>
