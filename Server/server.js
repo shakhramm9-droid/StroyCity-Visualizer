@@ -133,7 +133,7 @@ IMPORTANT:
         res.json({
             message: "Готово",
             resultFile: resultFileName,
-            resultUrl: `http://localhost:${PORT}/uploads/${resultFileName}`
+            resultUrl: `https://stroycity-visualizer-1.onrender.com/uploads/${resultFileName}`
         });
 
     } catch (error) {
