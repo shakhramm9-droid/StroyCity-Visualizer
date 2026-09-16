@@ -460,7 +460,7 @@
         formData.append("laminate", selectedLaminate.querySelector(".product-name").textContent);
         formData.append("skirting", selectedSkirting.querySelector(".product-name").textContent);
 
-        fetch("http://localhost:3000/visualize", {
+        fetch("https://stroycity-visualizer-1.onrender.com/visualize", {
             method: "POST",
             body: formData
         })
