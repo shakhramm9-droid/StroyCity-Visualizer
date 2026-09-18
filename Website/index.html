@@ -8,411 +8,1245 @@
     <title>StroyCity Interior</title>
 
     <style>
-        .result {
-    display: none;
+        * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family:
+        Inter,
+        Arial,
+        sans-serif;
+
+    background: #f6f6f4;
+    color: #252525;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+.topbar {
+    height: 82px;
+
     background: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 7%;
+
+    border-bottom: 1px solid #eeeeea;
+}
+
+.main-logo {
+    height: 55px;z
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.brand-mark {
+    width: 42px;
+    height: 42px;
+
+    background: #f5c400;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 900;
+    font-size: 22px;
+
+    border-radius: 11px;
+}
+
+.brand-name {
+    font-weight: 900;
+    font-size: 17px;
+    letter-spacing: 1px;
+}
+
+.brand-subtitle {
+    font-size: 10px;
+    letter-spacing: 1.7px;
+    color: #8b8b86;
+
+    margin-top: 2px;
+}
+
+.header-badge {
+    background: #f5c400;
+
+    padding: 8px 14px;
+
+    border-radius: 100px;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.container {
+    width: min(1160px, 90%);
+    margin: auto;
+}
+
+.hero {
+    padding: 85px 0 55px;
+
+    max-width: 850px;
+}
+
+.hero-label {
+    color: #9a7b00;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    letter-spacing: 1.5px;
+
+    margin-bottom: 17px;
+}
+
+.hero h1 {
+    font-size: clamp(
+        38px,
+        6vw,
+        68px
+    );
+
+    line-height: 1.04;
+    letter-spacing: -2px;
+}
+
+.hero h1 span {
+    position: relative;
+    white-space: nowrap;
+}
+
+.hero h1 span::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    bottom: 2px;
+
+    width: 100%;
+    height: 13px;
+
+    background: #f5c400;
+
+    z-index: -1;
+}
+
+.hero p {
+    margin-top: 24px;
+
+    max-width: 660px;
+
+    font-size: 18px;
+    line-height: 1.65;
+
+    color: #6b6b66;
+}
+
+.workspace {
+    background: white;
+
+    border-radius: 24px;
+
+    padding: 35px;
+
+    margin-bottom: 24px;
+
+    border: 1px solid #ededE8;
+}
+
+.section-heading {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 18px;
+
+    margin-bottom: 28px;
+}
+
+.step-number {
+    min-width: 38px;
+    height: 38px;
+
+    background: #f5c400;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    font-weight: 900;
+}
+
+.section-heading h2 {
+    font-size: 25px;
+
+    margin-bottom: 6px;
+}
+
+.section-heading p {
+    color: #777770;
+
+    line-height: 1.5;
+}
+
+.upload-area {
+    min-height: 330px;
+
+    border: 2px dashed #d8d8d0;
+
+    background: #fafaf7;
+
     border-radius: 20px;
-    padding: 30px;
-    margin-top: 35px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.upload-area:hover {
+    border-color: #f5c400;
+
+    background: #fffdf3;
+}
+
+.upload-content {
     text-align: center;
+
+    padding: 35px;
 }
 
-.result h2 {
-    font-size: 28px;
-    margin-bottom: 10px;
+.upload-icon {
+    font-size: 44px;
+
+    margin-bottom: 15px;
 }
 
-.result p {
-    color: #777;
+.upload-content h3 {
+    font-size: 22px;
+
+    margin-bottom: 8px;
+}
+
+.upload-content p {
+    color: #8b8b85;
+
     margin-bottom: 20px;
 }
 
-#resultImage {
-    width: 100%;
-    max-width: 800px;
-    border-radius: 15px;
+.upload-button {
+    display: inline-block;
+
+    background: #252525;
+    color: white;
+
+    padding: 12px 20px;
+
+    border-radius: 12px;
+
+    font-weight: 700;
 }
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
 
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            color: #222;
-        }
+.room-preview {
+    display: none;
 
-        .header {
-            background: #f5c400;
-            padding: 20px 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
+    width: 100%;
+    max-height: 600px;
 
-        .logo {
-            font-size: 26px;
-            font-weight: 800;
-        }
+    object-fit: contain;
 
-        .subtitle {
-            font-size: 14px;
-            color: #444;
-        }
+    background: #eeeeea;
+}
 
-        .container {
-            max-width: 1100px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
+.products {
+    display: grid;
 
-        .title {
-            text-align: center;
-            font-size: 36px;
-            margin-bottom: 10px;
-        }
+    grid-template-columns:
+        repeat(3, 1fr);
 
-        .description {
-            text-align: center;
-            color: #666;
-            margin-bottom: 35px;
-        }
+    gap: 18px;
+}
 
-        .upload-box {
-            background: white;
-            border-radius: 20px;
-            padding: 45px;
-            text-align: center;
-            border: 2px dashed #ccc;
-            margin-bottom: 35px;
-        }
+.skirting-products {
+    grid-template-columns:
+        repeat(2, 1fr);
+}
 
-        .upload-box h2 {
-            margin-bottom: 12px;
-        }
+.product {
+    background: #fafaf8;
 
-        .upload-box p {
-            color: #777;
-            margin-bottom: 25px;
-        }
+    border: 2px solid transparent;
 
-        .upload-button {
-            display: inline-block;
-            background: #f5c400;
-            color: #222;
-            padding: 14px 28px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+    border-radius: 18px;
 
-        #roomInput {
-            display: none;
-        }
+    overflow: hidden;
 
-        #preview {
-            max-width: 100%;
-            max-height: 450px;
-            margin: 25px auto 0;
-            border-radius: 15px;
-            display: none;
-        }
+    cursor: pointer;
 
-        .section {
-            margin-bottom: 35px;
-        }
+    transition:
+        transform 0.18s,
+        border-color 0.18s,
+        box-shadow 0.18s;
+}
 
-        .section-title {
-            font-size: 24px;
-            margin-bottom: 18px;
-        }
+.product:hover {
+    transform:
+        translateY(-3px);
 
-        .products {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
+    box-shadow:
+        0 10px 30px rgba(0,0,0,0.06);
+}
 
-        .product {
-            background: white;
-            border-radius: 15px;
-            padding: 15px;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: 0.2s;
-        }
+.product.selected {
+    border-color: #f5c400;
 
-        .product:hover {
-            transform: translateY(-3px);
-        }
+    box-shadow:
+        0 0 0 3px rgba(245,196,0,0.15);
+}
 
-        .product.selected {
-            border-color: #f5c400;
-        }
+.product-image {
+    height: 185px;
 
-        .product img {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-            border-radius: 10px;
-            margin-bottom: 12px;
-        }
+    position: relative;
 
-        .product-name {
-            font-weight: bold;
-            font-size: 17px;
-        }
+    overflow: hidden;
 
-        .product-info {
-            color: #777;
-            font-size: 14px;
-            margin-top: 5px;
-        }
+    background: #efefeb;
+}
 
-        .visualize {
-            width: 100%;
-            border: none;
-            background: #222;
-            color: white;
-            padding: 18px;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
+.product-image img {
+    width: 100%;
+    height: 100%;
 
-        .visualize:hover {
-            background: #333;
-        }
+    object-fit: cover;
 
-        @media (max-width: 700px) {
-            .products {
-                grid-template-columns: 1fr;
-            }
+    transition:
+        transform 0.3s;
+}
 
-            .title {
-                font-size: 28px;
-            }
+.product:hover img {
+    transform: scale(1.03);
+}
 
-            .header {
-                padding: 18px 20px;
-            }
-        }
+.selected-check {
+    position: absolute;
+
+    right: 12px;
+    top: 12px;
+
+    width: 31px;
+    height: 31px;
+
+    border-radius: 50%;
+
+    background: #f5c400;
+
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 900;
+
+    display: none;
+}
+
+.product.selected
+.selected-check {
+    display: flex;
+}
+
+.product-info {
+    padding: 18px;
+}
+
+.product-category {
+    font-size: 11px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+
+    color: #989890;
+
+    margin-bottom: 6px;
+}
+
+.product-name {
+    font-weight: 800;
+
+    font-size: 18px;
+}
+
+.product-meta {
+    margin-top: 6px;
+
+    color: #777770;
+
+    font-size: 14px;
+}
+
+.visualize-section {
+    text-align: center;
+
+    padding:
+        22px 0
+        60px;
+}
+
+.visualize-button {
+    border: none;
+
+    background: #f5c400;
+    color: #222;
+
+    border-radius: 16px;
+
+    padding: 18px 32px;
+
+    font-size: 18px;
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+    box-shadow:
+        0 10px 28px
+        rgba(245,196,0,0.25);
+}
+
+.visualize-button:hover {
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 14px 35px
+        rgba(245,196,0,0.32);
+}
+
+.visualize-button:disabled {
+    cursor: not-allowed;
+
+    opacity: 0.55;
+
+    transform: none;
+}
+
+.visualize-hint {
+    color: #888880;
+
+    font-size: 13px;
+
+    margin-top: 12px;
+}
+
+.loading-card,
+.result-card {
+    display: none;
+
+    background: white;
+
+    border-radius: 24px;
+
+    margin-bottom: 50px;
+
+    padding: 38px;
+
+    border: 1px solid #ededE8;
+}
+
+.loading-card {
+    text-align: center;
+
+    padding:
+        70px 30px;
+}
+
+.loader {
+    width: 52px;
+    height: 52px;
+
+    border: 5px solid #eeeeea;
+
+    border-top-color: #f5c400;
+
+    border-radius: 50%;
+
+    margin:
+        0 auto
+        25px;
+
+    animation:
+        spin 0.9s
+        linear
+        infinite;
+}
+
+@keyframes spin {
+
+    to {
+        transform:
+            rotate(360deg);
+    }
+
+}
+
+.loading-card h2 {
+    margin-bottom: 10px;
+}
+
+.loading-card p {
+    color: #777770;
+}
+
+.result-label {
+    display: inline-block;
+
+    background: #f5c400;
+
+    padding: 6px 10px;
+
+    border-radius: 7px;
+
+    font-size: 11px;
+    font-weight: 900;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 9px;
+}
+
+.result-heading h2 {
+    font-size: 30px;
+}
+
+.comparison {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 18px;
+
+    margin-top: 28px;
+}
+
+.comparison-item {
+    position: relative;
+
+    background: #f1f1ed;
+
+    border-radius: 16px;
+
+    overflow: hidden;
+}
+
+.comparison-item span {
+    position: absolute;
+
+    left: 12px;
+    top: 12px;
+
+    background:
+        rgba(255,255,255,0.94);
+
+    padding:
+        7px 11px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+    font-weight: 800;
+
+    z-index: 2;
+}
+
+.comparison-item img {
+    width: 100%;
+    height: 420px;
+
+    display: block;
+
+    object-fit: contain;
+}
+
+.result-actions {
+    display: flex;
+
+    justify-content: center;
+
+    gap: 12px;
+
+    margin-top: 25px;
+}
+
+.primary-button,
+.secondary-button {
+    border: none;
+
+    padding:
+        14px 20px;
+
+    border-radius: 12px;
+
+    font-weight: 800;
+
+    cursor: pointer;
+
+    text-decoration: none;
+}
+
+.primary-button {
+    background: #f5c400;
+
+    color: #222;
+}
+
+.secondary-button {
+    background: #eeeeea;
+
+    color: #333;
+}
+
+footer {
+    text-align: center;
+
+    padding:
+        55px 20px;
+
+    border-top:
+        1px solid #e7e7e1;
+
+    color: #777770;
+}
+
+footer strong {
+    color: #292929;
+
+    letter-spacing: 1px;
+}
+
+footer p {
+    margin-top: 6px;
+
+    font-size: 13px;
+}
+
+@media (
+    max-width: 800px
+) {
+
+    .topbar {
+        padding:
+            0 5%;
+    }
+
+    .header-badge {
+        display: none;
+    }
+
+    .hero {
+        padding:
+            55px 0
+            35px;
+    }
+
+    .hero h1 {
+        letter-spacing:
+            -1px;
+    }
+
+    .workspace {
+        padding: 22px;
+
+        border-radius: 18px;
+    }
+
+    .products,
+    .skirting-products {
+        grid-template-columns:
+            1fr;
+    }
+
+    .product-image {
+        height: 220px;
+    }
+
+    .comparison {
+        grid-template-columns:
+            1fr;
+    }
+
+    .comparison-item img {
+        height: auto;
+    }
+
+    .result-actions {
+        flex-direction: column;
+    }
+
+    .primary-button,
+    .secondary-button {
+        width: 100%;
+    }
+
+}
     </style>
 </head>
 
 <body>
 
-<header class="header">
-    <div class="logo">STROYCITY</div>
-    <div class="subtitle">INTERIOR VISUALIZER</div>
-</header>
-
-
-<main class="container">
-
-    <h1 class="title">
-        Создайте свой интерьер
-    </h1>
-
-    <p class="description">
-        Загрузите фотографию комнаты и выберите ламинат и плинтус
-    </p>
-
-
-    <!-- Загрузка комнаты -->
-
-    <div class="upload-box">
-
-        <h2>📷 Загрузите фотографию комнаты</h2>
-
-        <p>
-            Лучше использовать фотографию, на которой хорошо виден пол
-        </p>
-
-        <label class="upload-button" for="roomInput">
-            Выбрать фотографию
-        </label>
-
-        <input
-            type="file"
-            id="roomInput"
-            accept="image/*"
-        >
-
-        <img id="preview" alt="Ваша комната">
-
-    </div>
-
-
-    <!-- Ламинат -->
-
-    <section class="section">
-
-        <h2 class="section-title">
-            1. Выберите ламинат
-        </h2>
-
-        <div class="products">
-
-            <div class="product"
-                 onclick="selectProduct(this, 'laminate')">
-
-                <img src="products/laminate-01.jpg">
-
-                <div class="product-name">
-                    Ламинат №1
-                </div>
-
-                <div class="product-info">
-                    Дуб Natural · 33 класс
-                </div>
-
-            </div>
-
-
-            <div class="product"
-                 onclick="selectProduct(this, 'laminate')">
-
-               <img src="products/laminate-02.jpg">
-
-                <div class="product-name">
-                    Ламинат №2
-                </div>
-
-                <div class="product-info">
-                    Дуб Nordic · 33 класс
-                </div>
-
-            </div>
-
-
-            <div class="product"
-                 onclick="selectProduct(this, 'laminate')">
-
-            <img src="products/laminate-03.jpg">
-
-                <div class="product-name">
-                    Ламинат №3
-                </div>
-
-                <div class="product-info">
-                    Дуб Classic · 32 класс
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- Плинтус -->
-
-    <section class="section">
-
-        <h2 class="section-title">
-            2. Выберите плинтус
-        </h2>
-
-        <div class="products">
-
-            <div class="product"
-                 onclick="selectProduct(this, 'skirting')">
-
-                <img src="products/skirting-01.jpg">
-
-                <div class="product-name">
-                    Белый плинтус
-                </div>
-
-                <div class="product-info">
-                    Белый
-                </div>
-
-            </div>
-
-
-            <div class="product"
-                 onclick="selectProduct(this, 'skirting')">
-
-                <img src="products/skirting-02.jpg">
-
-                <div class="product-name">
-                    Плинтус Дуб
-                </div>
-
-                <div class="product-info">
-                    Древесный декор
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <button class="visualize" onclick="visualize()">
-        ✨ Визуализировать интерьер
-    </button>
-    <div id="result" class="result">
-
-    <h2>Ваш интерьер готов</h2>
-
-    <p>
-        Здесь появится результат визуализации
-    </p>
-
-    <img id="resultImage" alt="Результат визуализации">
-
+    <header class="topbar">
+        <div class="brand">
+    <img src="Images/logo.png" alt="StroyCity" class="main-logo">
 </div>
 
-</main>
+        <div class="header-badge">
+            AI интерьер
+        </div>
+    </header>
 
 
-<script>
+    <main class="container">
 
+        <section class="hero">
+
+            <div class="hero-label">
+                STROYCITY INTERIOR
+            </div>
+
+            <h1>
+                Посмотрите, как будет выглядеть
+                <span>новый пол</span>
+                в вашей комнате
+            </h1>
+
+            <p>
+                Загрузите фотографию комнаты, выберите ламинат
+                и плинтус, а визуализатор создаст новый интерьер.
+            </p>
+
+        </section>
+
+
+        <section class="workspace">
+
+            <div class="section-heading">
+
+                <div class="step-number">
+                    1
+                </div>
+
+                <div>
+                    <h2>Загрузите комнату</h2>
+
+                    <p>
+                        Лучше использовать фотографию,
+                        на которой хорошо виден пол.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <label class="upload-area" for="roomInput">
+
+                <input
+                    type="file"
+                    id="roomInput"
+                    accept="image/*"
+                    hidden
+                >
+
+                <div
+                    class="upload-content"
+                    id="uploadContent"
+                >
+
+                    <div class="upload-icon">
+                        📷
+                    </div>
+
+                    <h3>
+                        Загрузить фотографию
+                    </h3>
+
+                    <p>
+                        JPG, PNG или WEBP
+                    </p>
+
+                    <span class="upload-button">
+                        Выбрать фото
+                    </span>
+
+                </div>
+
+
+                <img
+                    id="preview"
+                    class="room-preview"
+                    alt="Фото комнаты"
+                >
+
+            </label>
+
+        </section>
+
+
+        <section class="workspace">
+
+            <div class="section-heading">
+
+                <div class="step-number">
+                    2
+                </div>
+
+                <div>
+                    <h2>Выберите ламинат</h2>
+
+                    <p>
+                        Нажмите на понравившийся декор.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="products">
+
+                <div
+                    class="product"
+                    onclick="selectProduct(this, 'laminate')"
+                >
+
+                    <div class="product-image">
+
+                        <img
+                            src="products/laminate-01.jpg"
+                            alt="Ламинат Дуб Natural"
+                        >
+
+                        <div class="selected-check">
+                            ✓
+                        </div>
+
+                    </div>
+
+                    <div class="product-info">
+
+                        <div class="product-category">
+                            Ламинат
+                        </div>
+
+                        <div class="product-name">
+                            Дуб Natural
+                        </div>
+
+                        <div class="product-meta">
+                            33 класс
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="product"
+                    onclick="selectProduct(this, 'laminate')"
+                >
+
+                    <div class="product-image">
+
+                        <img
+                            src="products/laminate-02.jpg"
+                            alt="Ламинат Дуб Nordic"
+                        >
+
+                        <div class="selected-check">
+                            ✓
+                        </div>
+
+                    </div>
+
+                    <div class="product-info">
+
+                        <div class="product-category">
+                            Ламинат
+                        </div>
+
+                        <div class="product-name">
+                            Дуб Nordic
+                        </div>
+
+                        <div class="product-meta">
+                            33 класс
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="product"
+                    onclick="selectProduct(this, 'laminate')"
+                >
+
+                    <div class="product-image">
+
+                        <img
+                            src="products/laminate-03.jpg"
+                            alt="Ламинат Дуб Classic"
+                        >
+
+                        <div class="selected-check">
+                            ✓
+                        </div>
+
+                    </div>
+
+                    <div class="product-info">
+
+                        <div class="product-category">
+                            Ламинат
+                        </div>
+
+                        <div class="product-name">
+                            Дуб Classic
+                        </div>
+
+                        <div class="product-meta">
+                            32 класс
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="workspace">
+
+            <div class="section-heading">
+
+                <div class="step-number">
+                    3
+                </div>
+
+                <div>
+                    <h2>Выберите плинтус</h2>
+
+                    <p>
+                        Плинтус будет подобран вместе с полом.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="products skirting-products">
+
+                <div
+                    class="product"
+                    onclick="selectProduct(this, 'skirting')"
+                >
+
+                    <div class="product-image">
+
+                        <img
+                            src="products/skirting-01.jpg"
+                            alt="Белый плинтус"
+                        >
+
+                        <div class="selected-check">
+                            ✓
+                        </div>
+
+                    </div>
+
+                    <div class="product-info">
+
+                        <div class="product-category">
+                            Плинтус
+                        </div>
+
+                        <div class="product-name">
+                            Белый плинтус
+                        </div>
+
+                        <div class="product-meta">
+                            Белый
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="product"
+                    onclick="selectProduct(this, 'skirting')"
+                >
+
+                    <div class="product-image">
+
+                        <img
+                            src="products/skirting-02.jpg"
+                            alt="Плинтус Дуб"
+                        >
+
+                        <div class="selected-check">
+                            ✓
+                        </div>
+
+                    </div>
+
+                    <div class="product-info">
+
+                        <div class="product-category">
+                            Плинтус
+                        </div>
+
+                        <div class="product-name">
+                            Плинтус Дуб
+                        </div>
+
+                        <div class="product-meta">
+                            Древесный декор
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="visualize-section">
+
+            <button
+                class="visualize-button"
+                id="visualizeButton"
+                onclick="visualize()"
+            >
+
+                <span>
+                    ✨
+                </span>
+
+                Визуализировать интерьер
+
+            </button>
+
+
+            <p class="visualize-hint">
+                Создание изображения может занять некоторое время.
+            </p>
+
+        </section>
+
+
+        <section
+            id="loading"
+            class="loading-card"
+        >
+
+            <div class="loader"></div>
+
+            <h2>
+                Создаём ваш интерьер
+            </h2>
+
+            <p id="loadingText">
+                Анализируем фотографию комнаты...
+            </p>
+
+        </section>
+
+
+        <section
+            id="result"
+            class="result-card"
+        >
+
+            <div class="result-heading">
+
+                <div>
+
+                    <div class="result-label">
+                        ГОТОВО
+                    </div>
+
+                    <h2>
+                        Ваш новый интерьер
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="comparison">
+
+                <div class="comparison-item">
+
+                    <span>
+                        До
+                    </span>
+
+                    <img
+                        id="originalResultImage"
+                        alt="Исходная комната"
+                    >
+
+                </div>
+
+
+                <div class="comparison-item">
+
+                    <span>
+                        После
+                    </span>
+
+                    <img
+                        id="resultImage"
+                        alt="Результат визуализации"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="result-actions">
+
+                <button
+                    class="secondary-button"
+                    onclick="resetVisualizer()"
+                >
+                    Выбрать другой вариант
+                </button>
+
+                <a
+                    id="downloadResult"
+                    class="primary-button"
+                    download="stroycity-interior.png"
+                >
+                    Скачать результат
+                </a>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+
+        <strong>
+            STROYCITY
+        </strong>
+
+        <p>
+            Визуализация материалов в вашем интерьере
+        </p>
+
+    </footer>
+
+    <script>
     let selectedLaminate = null;
     let selectedSkirting = null;
+    let roomFile = null;
+
+    // =========================
+    // Загрузка фотографии
+    // =========================
+
+    const roomInput = document.getElementById("roomInput");
+    const uploadArea = document.getElementById("uploadArea");
+    const uploadContent = document.getElementById("uploadContent");
+    const roomPreview = document.getElementById("roomPreview");
+
+    roomInput.addEventListener("change", function () {
+        const file = this.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            alert("Пожалуйста, загрузите JPG, PNG или WEBP.");
+            roomInput.value = "";
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Размер фотографии не должен превышать 10 МБ.");
+            roomInput.value = "";
+            return;
+        }
+
+        roomFile = file;
+
+        roomPreview.src = URL.createObjectURL(file);
+        roomPreview.style.display = "block";
+
+        uploadContent.style.display = "none";
+        uploadArea.classList.add("has-image");
+    });
 
 
-    // Показываем загруженную комнату
-
-    document
-        .getElementById("roomInput")
-        .addEventListener("change", function(event) {
-
-            const file = event.target.files[0];
-
-            if (!file) return;
-
-            const imageURL = URL.createObjectURL(file);
-
-            const preview = document.getElementById("preview");
-
-            preview.src = imageURL;
-            preview.style.display = "block";
-
-        });
-
-
+    // =========================
     // Выбор товара
+    // =========================
 
     function selectProduct(element, type) {
 
-        const products =
-            element.parentElement.querySelectorAll(".product");
+        const container = element.parentElement;
 
-        products.forEach(function(product) {
+        container.querySelectorAll(".product").forEach(product => {
             product.classList.remove("selected");
         });
 
         element.classList.add("selected");
-
 
         if (type === "laminate") {
             selectedLaminate = element;
@@ -421,83 +1255,206 @@
         if (type === "skirting") {
             selectedSkirting = element;
         }
-
     }
 
 
+    // =========================
     // Визуализация
+    // =========================
 
-    function visualize() {
+    async function visualize() {
 
-        const room =
-            document.getElementById("roomInput").files[0];
-
-
-        if (!room) {
+        if (!roomFile) {
             alert("Сначала загрузите фотографию комнаты.");
             return;
         }
-
 
         if (!selectedLaminate) {
             alert("Выберите ламинат.");
             return;
         }
 
-
         if (!selectedSkirting) {
             alert("Выберите плинтус.");
             return;
         }
 
+        const loading = document.getElementById("loading");
+        const result = document.getElementById("result");
+        const visualizeButton = document.getElementById("visualizeButton");
+        const loadingText = document.getElementById("loadingText");
 
-        // Проверяем связь с сервером
+        const resultImage = document.getElementById("resultImage");
+        const originalResultImage = document.getElementById("originalResultImage");
+        const downloadResult = document.getElementById("downloadResult");
 
-                // Отправляем фото и выбранные товары на сервер
+        // Показываем загрузку
+        loading.style.display = "block";
+        result.style.display = "none";
+
+        visualizeButton.disabled = true;
+        visualizeButton.style.opacity = "0.6";
+        visualizeButton.style.cursor = "not-allowed";
+
+        loadingText.textContent = "Анализируем фотографию комнаты...";
+
+        // Меняем текст во время ожидания
+        const loadingTimer1 = setTimeout(() => {
+            loadingText.textContent = "Подбираем ламинат для интерьера...";
+        }, 4000);
+
+        const loadingTimer2 = setTimeout(() => {
+            loadingText.textContent = "Изменяем напольное покрытие...";
+        }, 9000);
+
+        const loadingTimer3 = setTimeout(() => {
+            loadingText.textContent = "Добавляем выбранный плинтус...";
+        }, 15000);
+
+
+        // =========================
+        // Отправляем данные серверу
+        // =========================
 
         const formData = new FormData();
-        formData.append("room", room);
-        formData.append("laminate", selectedLaminate.querySelector(".product-name").textContent);
-        formData.append("skirting", selectedSkirting.querySelector(".product-name").textContent);
 
-        fetch("https://stroycity-visualizer-1.onrender.com/visualize", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-.then(data => {
-    console.log("Ответ сервера:", data);
+        formData.append("room", roomFile);
 
-    if (data.resultUrl) {
-        resultImage.src = data.resultUrl;
-    } else {
-        alert("Не удалось получить результат от AI. Смотрите консоль.");
-        console.error("Ответ без картинки:", data);
+        formData.append(
+            "laminate",
+            selectedLaminate.querySelector(".product-name").textContent
+        );
+
+        formData.append(
+            "skirting",
+            selectedSkirting.querySelector(".product-name").textContent
+        );
+
+
+        try {
+
+            const response = await fetch(
+                "https://stroycity-visualizer-1.onrender.com/visualize",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Сервер вернул ошибку: " + response.status
+                );
+            }
+
+            const data = await response.json();
+
+            console.log("Ответ сервера:", data);
+
+
+            // =========================
+            // Получили результат
+            // =========================
+
+            if (!data.resultUrl) {
+                throw new Error("Сервер не вернул resultUrl.");
+            }
+
+            // Оригинальная фотография
+            originalResultImage.src = URL.createObjectURL(roomFile);
+
+            // Результат AI
+            resultImage.src = data.resultUrl;
+
+            // Кнопка скачивания
+            downloadResult.href = data.resultUrl;
+            downloadResult.download = "stroycity-result.png";
+
+            // Останавливаем таймеры
+            clearTimeout(loadingTimer1);
+            clearTimeout(loadingTimer2);
+            clearTimeout(loadingTimer3);
+
+            // Скрываем загрузку
+            loading.style.display = "none";
+
+            // Показываем результат
+            result.style.display = "block";
+
+            // Возвращаем кнопку
+            visualizeButton.disabled = false;
+            visualizeButton.style.opacity = "1";
+            visualizeButton.style.cursor = "pointer";
+
+            // Прокручиваем к результату
+            result.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        } catch (error) {
+
+            console.error("Ошибка:", error);
+
+            clearTimeout(loadingTimer1);
+            clearTimeout(loadingTimer2);
+            clearTimeout(loadingTimer3);
+
+            loading.style.display = "none";
+
+            visualizeButton.disabled = false;
+            visualizeButton.style.opacity = "1";
+            visualizeButton.style.cursor = "pointer";
+
+            alert(
+                "Не удалось создать визуализацию.\n\n" +
+                "Проверьте, запущен ли сервер."
+            );
+        }
     }
-})
-.catch(error => {
-    console.error("Ошибка сервера:", error);
-    alert("Ошибка соединения с сервером.");
-});
 
 
-        // Показываем результат
+    // =========================
+    // Сброс
+    // =========================
 
-        const result =
-            document.getElementById("result");
+    function resetVisualizer() {
 
-        const resultImage =
-            document.getElementById("resultImage");
+        selectedLaminate = null;
+        selectedSkirting = null;
+        roomFile = null;
 
-
-
-        result.style.display = "block";
-
-
-        result.scrollIntoView({
-            behavior: "smooth"
+        // Снимаем выбор товаров
+        document.querySelectorAll(".product").forEach(product => {
+            product.classList.remove("selected");
         });
 
-    }
+        // Сбрасываем фотографию
+        roomInput.value = "";
 
+        roomPreview.src = "";
+        roomPreview.style.display = "none";
+
+        uploadContent.style.display = "block";
+        uploadArea.classList.remove("has-image");
+
+        // Скрываем результат
+        document.getElementById("result").style.display = "none";
+
+        // Скрываем загрузку
+        document.getElementById("loading").style.display = "none";
+
+        // Возвращаем кнопку
+        const visualizeButton = document.getElementById("visualizeButton");
+
+        visualizeButton.disabled = false;
+        visualizeButton.style.opacity = "1";
+        visualizeButton.style.cursor = "pointer";
+
+        // В начало страницы
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    }
 </script>
