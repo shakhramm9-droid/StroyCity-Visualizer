@@ -88,45 +88,52 @@ app.post("/visualize", upload.single("room"), async (req, res) => {
         const laminate = req.body.laminate || "выбранный ламинат";
         const skirting = req.body.skirting || "выбранный плинтус";
 
-        const prompt = `
-Edit this interior room photo.
+        // ==========================================
+        // Шаг 1: меняем ПОЛ
+        // ==========================================
 
-Replace ONLY the existing floor with realistic laminate flooring:
-"${laminate}"
+        console.log("Шаг 1: отправляем фото в Hugging Face (пол)...");
 
-Replace ONLY the visible floor skirting/baseboards with:
-"${skirting}"
+        const floorPrompt = `Replace the floor with realistic ${laminate} laminate flooring. Keep everything else in the room exactly the same, photorealistic, same camera angle.`;
 
-IMPORTANT:
-- Keep the original room exactly the same.
-- Keep walls unchanged.
-- Keep furniture unchanged.
-- Keep doors unchanged.
-- Keep windows unchanged.
-- Keep lighting and shadows natural.
-- Keep the original camera angle and perspective.
-- Do not add furniture.
-- Do not remove furniture.
-- Do not change the room layout.
-- The new floor must follow the original perspective.
-- The result must look like a real photograph of the same room after renovation.
-`;
+        const floorResult = await hf.imageToImage({
+            model: "black-forest-labs/FLUX.1-Kontext-dev",
+            inputs: new Blob([imageBuffer], { type: req.file.mimetype }),
+            parameters: {
+                prompt: floorPrompt,
+                guidance_scale: 3.5,
+                num_inference_steps: 30
+            }
+        });
 
-        console.log("Отправляем изображение в Hugging Face...");
+        const floorImageBuffer = Buffer.from(await floorResult.arrayBuffer());
 
-        // Модель для редактирования изображений
-        const result = await hf.imageToImage({
-    model: "black-forest-labs/FLUX.1-Kontext-dev",
-    inputs: new Blob([imageBuffer], { type: req.file.mimetype }),
-    prompt: prompt
-});
+        console.log("Шаг 1 готов.");
 
-        console.log("Hugging Face вернул изображение");
+        // ==========================================
+        // Шаг 2: меняем ПЛИНТУС (на уже изменённом фото)
+        // ==========================================
+
+        console.log("Шаг 2: отправляем фото в Hugging Face (плинтус)...");
+
+        const skirtingPrompt = `Replace the wall baseboards (skirting boards) at the bottom of the walls with clearly visible ${skirting} colored skirting boards. Keep everything else exactly the same, photorealistic, same camera angle.`;
+
+        const finalResult = await hf.imageToImage({
+            model: "black-forest-labs/FLUX.1-Kontext-dev",
+            inputs: new Blob([floorImageBuffer], { type: "image/png" }),
+            parameters: {
+                prompt: skirtingPrompt,
+                guidance_scale: 3.5,
+                num_inference_steps: 30
+            }
+        });
+
+        console.log("Шаг 2 готов. Hugging Face вернул итоговое изображение");
 
         const resultFileName = "result-" + Date.now() + ".png";
         const resultPath = path.join("uploads", resultFileName);
 
-        fs.writeFileSync(resultPath, Buffer.from(await result.arrayBuffer()));
+        fs.writeFileSync(resultPath, Buffer.from(await finalResult.arrayBuffer()));
 
         console.log("Результат сохранён:", resultFileName);
 
