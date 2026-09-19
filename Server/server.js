@@ -4,20 +4,17 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-const { InferenceClient } = require("@huggingface/inference");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Hugging Face
-const HF_TOKEN = process.env.HF_TOKEN;
+// Gemini
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!HF_TOKEN) {
-    console.error("ОШИБКА: HF_TOKEN не найден в .env");
+if (!GEMINI_API_KEY) {
+    console.error("ОШИБКА: GEMINI_API_KEY не найден в переменных окружения");
     process.exit(1);
 }
-
-const hf = new InferenceClient(HF_TOKEN);
 
 // Создаём папку uploads
 if (!fs.existsSync("uploads")) {
@@ -29,11 +26,9 @@ const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "uploads");
     },
-
     filename: function (req, file, cb) {
         const uniqueName =
             Date.now() + "-" + file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
-
         cb(null, uniqueName);
     }
 });
@@ -55,10 +50,61 @@ app.use((req, res, next) => {
 
 app.use("/uploads", express.static("uploads"));
 
-// Главная страница сервера
 app.get("/", (req, res) => {
-    res.send("StroyCity Visualizer Server работает!");
+    res.send("StroyCity Visualizer Server работает! (Gemini)");
 });
+
+// Вспомогательная функция: один запрос к Gemini
+async function editImageWithGemini(imageBuffer, mimeType, prompt) {
+
+    const base64Image = imageBuffer.toString("base64");
+
+    const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        {
+                            inlineData: {
+                                mimeType: mimeType,
+                                data: base64Image
+                            }
+                        },
+                        { text: prompt }
+                    ]
+                }],
+                generationConfig: {
+                    responseModalities: ["IMAGE"]
+                }
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            "Gemini ошибка: " + JSON.stringify(data)
+        );
+    }
+
+    const parts = data.candidates[0].content.parts;
+    const imagePart = parts.find(p => p.inlineData);
+
+    if (!imagePart) {
+        throw new Error(
+            "Gemini не вернул изображение: " + JSON.stringify(data)
+        );
+    }
+
+    return Buffer.from(imagePart.inlineData.data, "base64");
+}
 
 // Визуализация
 app.post("/visualize", upload.single("room"), async (req, res) => {
@@ -73,10 +119,7 @@ app.post("/visualize", upload.single("room"), async (req, res) => {
 
     if (!req.file) {
         console.log("Файл НЕ получен");
-
-        return res.status(400).json({
-            error: "Фото не получено"
-        });
+        return res.status(400).json({ error: "Фото не получено" });
     }
 
     console.log("Файл сохранён:", req.file.filename);
@@ -92,48 +135,38 @@ app.post("/visualize", upload.single("room"), async (req, res) => {
         // Шаг 1: меняем ПОЛ
         // ==========================================
 
-        console.log("Шаг 1: отправляем фото в Hugging Face (пол)...");
+        console.log("Шаг 1: меняем пол через Gemini...");
 
         const floorPrompt = `Replace the floor with realistic ${laminate} laminate flooring. Keep everything else in the room exactly the same, photorealistic, same camera angle.`;
 
-        const floorResult = await hf.imageToImage({
-            model: "black-forest-labs/FLUX.1-Kontext-dev",
-            inputs: new Blob([imageBuffer], { type: req.file.mimetype }),
-            parameters: {
-                prompt: floorPrompt,
-                guidance_scale: 3.5,
-                num_inference_steps: 30
-            }
-        });
-
-        const floorImageBuffer = Buffer.from(await floorResult.arrayBuffer());
+        const floorImageBuffer = await editImageWithGemini(
+            imageBuffer,
+            req.file.mimetype,
+            floorPrompt
+        );
 
         console.log("Шаг 1 готов.");
 
         // ==========================================
-        // Шаг 2: меняем ПЛИНТУС (на уже изменённом фото)
+        // Шаг 2: меняем ПЛИНТУС на уже изменённом фото
         // ==========================================
 
-        console.log("Шаг 2: отправляем фото в Hugging Face (плинтус)...");
+        console.log("Шаг 2: меняем плинтус через Gemini...");
 
         const skirtingPrompt = `Replace the wall baseboards (skirting boards) at the bottom of the walls with clearly visible ${skirting} colored skirting boards. Keep everything else exactly the same, photorealistic, same camera angle.`;
 
-        const finalResult = await hf.imageToImage({
-            model: "black-forest-labs/FLUX.1-Kontext-dev",
-            inputs: new Blob([floorImageBuffer], { type: "image/png" }),
-            parameters: {
-                prompt: skirtingPrompt,
-                guidance_scale: 3.5,
-                num_inference_steps: 30
-            }
-        });
+        const finalImageBuffer = await editImageWithGemini(
+            floorImageBuffer,
+            "image/png",
+            skirtingPrompt
+        );
 
-        console.log("Шаг 2 готов. Hugging Face вернул итоговое изображение");
+        console.log("Шаг 2 готов.");
 
         const resultFileName = "result-" + Date.now() + ".png";
         const resultPath = path.join("uploads", resultFileName);
 
-        fs.writeFileSync(resultPath, Buffer.from(await finalResult.arrayBuffer()));
+        fs.writeFileSync(resultPath, finalImageBuffer);
 
         console.log("Результат сохранён:", resultFileName);
 
@@ -147,7 +180,7 @@ app.post("/visualize", upload.single("room"), async (req, res) => {
 
         console.error("");
         console.error("=================================");
-        console.error("ОШИБКА HUGGING FACE");
+        console.error("ОШИБКА GEMINI");
         console.error("=================================");
         console.error(error);
 
@@ -158,8 +191,8 @@ app.post("/visualize", upload.single("room"), async (req, res) => {
     }
 });
 
-console.log("=== StroyCity Visualizer — Hugging Face ===");
+console.log("=== StroyCity Visualizer — Gemini ===");
 
 app.listen(PORT, () => {
-    console.log(`Server запущен: http://localhost:${PORT}`);
+    console.log(`Server запущен на порту ${PORT}`);
 });
