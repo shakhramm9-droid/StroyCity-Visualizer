@@ -777,44 +777,66 @@ footer p {
 
             <label class="upload-area" id="uploadArea" for="roomInput">
 
-                <input
-                    type="file"
-                    id="roomInput"
-                    accept="image/*"
-                    hidden
-                >
+    <input
+        type="file"
+        id="roomInput"
+        accept="image/*"
+        hidden
+    >
 
-                <div
-                    class="upload-content"
-                    id="uploadContent"
-                >
+    <div
+        class="upload-content"
+        id="uploadContent"
+    >
 
-                    <div class="upload-icon">
-                        📷
-                    </div>
+        <div class="upload-icon">
+            📷
+        </div>
 
-                    <h3>
-                        Загрузить фотографию
-                    </h3>
+        <h3>
+            Загрузить фотографию
+        </h3>
 
-                    <p>
-                        JPG, PNG или WEBP
-                    </p>
+        <p>
+            JPG, PNG или WEBP
+        </p>
 
-                    <span class="upload-button">
-                        Выбрать фото
-                    </span>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
 
-                </div>
+            <span class="upload-button">
+                Выбрать фото
+            </span>
 
-
-                <img
-                    id="preview"
-                    class="room-preview"
-                    alt="Фото комнаты"
-                >
-
+            <label
+                for="cameraInput"
+                class="upload-button"
+                style="background: #f5c400; color: #222;"
+                onclick="event.stopPropagation()"
+            >
+                📸 Открыть камеру
             </label>
+
+        </div>
+
+    </div>
+
+
+    <img
+        id="preview"
+        class="room-preview"
+        alt="Фото комнаты"
+    >
+
+</label>
+
+
+<input
+    type="file"
+    id="cameraInput"
+    accept="image/*"
+    capture="environment"
+    hidden
+>
 
         </section>
 
@@ -1195,43 +1217,49 @@ footer p {
     // =========================
 
     const roomInput = document.getElementById("roomInput");
-    const uploadArea = document.getElementById("uploadArea");
-    const uploadContent = document.getElementById("uploadContent");
-    const roomPreview = document.getElementById("preview");
+const cameraInput = document.getElementById("cameraInput");
+const uploadArea = document.getElementById("uploadArea");
+const uploadContent = document.getElementById("uploadContent");
+const roomPreview = document.getElementById("preview");
 
-    roomInput.addEventListener("change", function () {
-        const file = this.files[0];
+function handleRoomFile(file) {
 
-        if (!file) {
-            return;
-        }
+    if (!file) {
+        return;
+    }
 
-        const allowedTypes = [
-            "image/jpeg",
-            "image/png",
-            "image/webp"
-        ];
+    const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ];
 
-        if (!allowedTypes.includes(file.type)) {
-            alert("Пожалуйста, загрузите JPG, PNG или WEBP.");
-            roomInput.value = "";
-            return;
-        }
+    if (!allowedTypes.includes(file.type)) {
+        alert("Пожалуйста, загрузите JPG, PNG или WEBP.");
+        return;
+    }
 
-        if (file.size > 10 * 1024 * 1024) {
-            alert("Размер фотографии не должен превышать 10 МБ.");
-            roomInput.value = "";
-            return;
-        }
+    if (file.size > 10 * 1024 * 1024) {
+        alert("Размер фотографии не должен превышать 10 МБ.");
+        return;
+    }
 
-        roomFile = file;
+    roomFile = file;
 
-        roomPreview.src = URL.createObjectURL(file);
-        roomPreview.style.display = "block";
+    roomPreview.src = URL.createObjectURL(file);
+    roomPreview.style.display = "block";
 
-        uploadContent.style.display = "none";
-        uploadArea.classList.add("has-image");
-    });
+    uploadContent.style.display = "none";
+    uploadArea.classList.add("has-image");
+}
+
+roomInput.addEventListener("change", function () {
+    handleRoomFile(this.files[0]);
+});
+
+cameraInput.addEventListener("change", function () {
+    handleRoomFile(this.files[0]);
+});
 
 
     // =========================
