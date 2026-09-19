@@ -883,15 +883,15 @@ footer p {
                     <div class="product-info">
 
                         <div class="product-category">
-                            Ламинат
+                            Parket Green
                         </div>
 
                         <div class="product-name">
-                            Дуб Natural
+                            Дуб Зигфрид
                         </div>
 
                         <div class="product-meta">
-                            33 класс
+                            31 класс
                         </div>
 
                     </div>
@@ -920,15 +920,15 @@ footer p {
                     <div class="product-info">
 
                         <div class="product-category">
-                            Ламинат
+                            Parket Green
                         </div>
 
                         <div class="product-name">
-                            Дуб Nordic
+                            Дуб Виндзор
                         </div>
 
                         <div class="product-meta">
-                            33 класс
+                            31 класс
                         </div>
 
                     </div>
@@ -957,15 +957,15 @@ footer p {
                     <div class="product-info">
 
                         <div class="product-category">
-                            Ламинат
+                            Parket Green
                         </div>
 
                         <div class="product-name">
-                            Дуб Classic
+                            Дуб Бьерн
                         </div>
 
                         <div class="product-meta">
-                            32 класс
+                            31 класс
                         </div>
 
                     </div>
@@ -973,6 +973,16 @@ footer p {
                 </div>
 
             </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+    <button
+        type="button"
+        class="secondary-button show-more-btn"
+        onclick="toggleShowMore(this, 'laminate')"
+    >
+        Показать ещё
+    </button>
+</div>
 
         </section>
 
@@ -1072,6 +1082,16 @@ footer p {
                 </div>
 
             </div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <button
+        type="button"
+        class="secondary-button show-more-btn"
+        onclick="toggleShowMore(this, 'skirting')"
+    >
+        Показать ещё
+    </button>
+</div>
 
         </section>
 
@@ -1208,6 +1228,47 @@ footer p {
     </footer>
 
     <script>
+    
+    // =========================
+// Показать ещё товаров
+// =========================
+
+const VISIBLE_COUNT = 6; // сколько товаров показывать сразу
+
+function setupShowMore(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const products = container.querySelectorAll(".product");
+
+    products.forEach((product, index) => {
+        if (index >= VISIBLE_COUNT) {
+            product.style.display = "none";
+        }
+    });
+}
+
+function toggleShowMore(button, type) {
+    const containerId = type === "laminate" ? "laminateProducts" : "skirtingProducts";
+    const container = document.getElementById(containerId);
+    const products = container.querySelectorAll(".product");
+
+    const isExpanded = button.dataset.expanded === "true";
+
+    products.forEach((product, index) => {
+        if (index >= VISIBLE_COUNT) {
+            product.style.display = isExpanded ? "none" : "";
+        }
+    });
+
+    button.textContent = isExpanded ? "Показать ещё" : "Скрыть";
+    button.dataset.expanded = isExpanded ? "false" : "true";
+}
+
+// Запускаем при загрузке страницы
+setupShowMore("laminateProducts");
+setupShowMore("skirtingProducts");
+    
     let selectedLaminate = null;
     let selectedSkirting = null;
     let roomFile = null;
