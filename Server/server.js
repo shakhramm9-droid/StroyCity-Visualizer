@@ -42,11 +42,11 @@ if (!GEMINI_API_KEY) {
 
 const FLOOR_DESCRIPTIONS = {
     "Дуб Зигфрид": "dark chocolate brown oak laminate flooring, rich walnut-like color, fine pronounced wood grain with dark streaks and small knots, long planks with thin beveled joints, matte finish",
-    "Дуб Виндзор": "oak laminate flooring, wood planks",
-    "Дуб Бьерн": "oak laminate flooring, wood planks",
-    "Дуб Пауэр": "oak laminate flooring, wood planks",
-    "Дуб Кантри": "oak laminate flooring, wood planks",
-    "Дуб Берлин": "oak laminate flooring, wood planks"
+    "Дуб Виндзор": "light grey whitewashed oak laminate flooring, pale cool grey-white color, visible natural knots and soft wood grain, wide planks with thin joints, matte finish",
+    "Дуб Бьерн": "light beige oak laminate flooring, warm sandy greige tone, fine pronounced open-pore wood grain with small knots, long planks, matte natural finish",
+    "Дуб Пауэр": "dark smoky grey-brown oak laminate flooring, deep taupe color, pronounced wood grain with knots, long planks with thin dark beveled joints, matte finish",
+    "Дуб Кантри": "rustic weathered oak laminate flooring, brushed grey-brown color with light grain lines and reddish-brown dark streaks, aged vintage look, strongly textured surface, matte finish",
+    "Дуб Берлин": "very light white-washed oak laminate flooring, almost white with soft grey grain lines, fine open-pore grain, long planks with distinct beveled grooves between them, matte finish"
 };
 
 function describeFloor(name) {
