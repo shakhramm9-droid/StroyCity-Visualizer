@@ -1678,7 +1678,53 @@ const uploadArea = document.getElementById("uploadArea");
 const uploadContent = document.getElementById("uploadContent");
 const roomPreview = document.getElementById("preview");
 
-function handleRoomFile(file) {
+// Приводит фото к безопасному виду: учитывает поворот, уменьшает размер, сохраняет как JPEG.
+async function normalizeRoomPhoto(file) {
+
+    const MAX_SIDE = 1600;
+
+    let source;
+    let sourceWidth;
+    let sourceHeight;
+
+    try {
+        source = await createImageBitmap(file, { imageOrientation: "from-image" });
+        sourceWidth = source.width;
+        sourceHeight = source.height;
+    } catch (e) {
+        source = await new Promise(function (resolve, reject) {
+            const img = new Image();
+            img.onload = function () { resolve(img); };
+            img.onerror = function () { reject(new Error("decode")); };
+            img.src = URL.createObjectURL(file);
+        });
+        sourceWidth = source.naturalWidth;
+        sourceHeight = source.naturalHeight;
+    }
+
+    if (!sourceWidth || !sourceHeight) {
+        throw new Error("empty");
+    }
+
+    const k = Math.min(1, MAX_SIDE / Math.max(sourceWidth, sourceHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(sourceWidth * k);
+    canvas.height = Math.round(sourceHeight * k);
+
+    canvas.getContext("2d").drawImage(source, 0, 0, canvas.width, canvas.height);
+
+    return new Promise(function (resolve, reject) {
+        canvas.toBlob(function (blob) {
+            if (!blob) {
+                reject(new Error("blob"));
+                return;
+            }
+            resolve(new File([blob], "room.jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", 0.9);
+    });
+}
+
+async function handleRoomFile(file) {
 
     if (!file) {
         return;
@@ -1690,25 +1736,35 @@ function handleRoomFile(file) {
         "image/webp"
     ];
 
-    if (!allowedTypes.includes(file.type)) {
+    if (file.type && !allowedTypes.includes(file.type)) {
         alert("Пожалуйста, загрузите JPG, PNG или WEBP.");
         return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-        alert("Размер фотографии не должен превышать 10 МБ.");
+    if (file.size > 30 * 1024 * 1024) {
+        alert("Размер фотографии слишком большой. Выберите другое фото.");
         return;
     }
 
-    roomFile = file;
+    let prepared;
 
-    roomPreview.src = URL.createObjectURL(file);
+    try {
+        prepared = await normalizeRoomPhoto(file);
+    } catch (e) {
+        console.error("Не удалось открыть фото:", e);
+        alert("Не удалось открыть это фото. Попробуйте другое или сделайте новый снимок.");
+        return;
+    }
+
+    roomFile = prepared;
+
+    roomPreview.src = URL.createObjectURL(prepared);
     roomPreview.style.display = "block";
 
     uploadContent.style.display = "none";
     uploadArea.classList.add("has-image");
 
-    initMaskEditor(file);
+    initMaskEditor(prepared);
 }
 
 roomInput.addEventListener("change", function () {
