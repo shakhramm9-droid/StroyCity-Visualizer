@@ -41,7 +41,7 @@ if (!GEMINI_API_KEY) {
 // ==========================================
  
 const FLOOR_DESCRIPTIONS = {
-    "Дуб Зигфрид": "natural oak laminate flooring, medium warm wood tone",
+    "Дуб Зигфрид": "dark chocolate brown oak laminate flooring, rich walnut-like color, fine pronounced wood grain with dark streaks and small knots, long planks with thin beveled joints, matte finish",
     "Дуб Виндзор": "oak laminate flooring, wood planks",
     "Дуб Бьерн": "oak laminate flooring, wood planks",
     "Дуб Пауэр": "oak laminate flooring, wood planks",
