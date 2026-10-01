@@ -909,6 +909,110 @@ footer p {
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
 }
+
+/* ===== Слайдер "До / После" ===== */
+.compare-slider {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: #eee;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+    cursor: ew-resize;
+}
+
+.compare-image {
+    position: relative;
+    width: 100%;
+    line-height: 0;
+}
+
+.compare-image img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+.compare-after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    clip-path: inset(0 0 0 50%);
+}
+
+.compare-after img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.compare-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 3;
+    padding: 5px 12px;
+    border-radius: 100px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.compare-after .compare-label {
+    left: auto;
+    right: 12px;
+}
+
+.compare-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.compare-handle-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -1px;
+    width: 2px;
+    background: #fff;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+.compare-handle-circle {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: #181817;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Страховка от горизонтальной прокрутки на телефоне */
+html, body { max-width: 100%; overflow-x: hidden; }
+#result img { max-width: 100%; }
 </style>
 </head>
 
@@ -1619,6 +1723,7 @@ setupShowMore("skirtingProducts");
     let selectedLaminate = null;
     let selectedSkirting = null;
     let roomFile = null;
+    let currentResultUrl = null;
 
 // =========================
 // Слайдер "До / После"
@@ -2053,15 +2158,25 @@ cameraInput.addEventListener("change", function () {
                 throw new Error("Сервер не вернул resultUrl.");
             }
 
-            // Оригинальная фотография
-            originalResultImage.src = URL.createObjectURL(roomFile);
+            // Ждём, пока обе картинки реально загрузятся
+            const loadImg = (img, src) => new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error("Не удалось загрузить изображение"));
+                img.src = src;
+            });
 
-            // Результат AI
-            resultImage.src = data.resultUrl;
+            await Promise.all([
+                loadImg(originalResultImage, URL.createObjectURL(roomFile)),
+                loadImg(resultImage, data.resultUrl)
+            ]);
 
-            // Кнопка скачивания
+            // Слайдер в середину
+            document.getElementById("compareAfter").style.clipPath = "inset(0 0 0 50%)";
+            document.getElementById("compareHandle").style.left = "50%";
+
+            // Кнопка скачивания (через blob, иначе на телефоне просто открывается вкладка)
+            currentResultUrl = data.resultUrl;
             downloadResult.href = data.resultUrl;
-            downloadResult.download = "stroycity-result.png";
 
             // Останавливаем таймеры
             clearTimeout(loadingTimer1);
@@ -2106,6 +2221,25 @@ cameraInput.addEventListener("change", function () {
         }
     }
 
+
+    // Скачивание результата
+    document.getElementById("downloadResult").addEventListener("click", async function (e) {
+        e.preventDefault();
+        if (!currentResultUrl) return;
+        try {
+            const r = await fetch(currentResultUrl);
+            const blob = await r.blob();
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "stroycity-result.png";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        } catch (err) {
+            window.open(currentResultUrl, "_blank");
+        }
+    });
 
        // =========================
     // Сброс
