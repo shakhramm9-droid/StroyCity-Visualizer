@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -903,7 +902,14 @@ footer p {
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
 }
-    </style>
+    
+/* ===== Маска пола ===== */
+.mask-stage { position: relative; width: 100%; max-width: 720px; margin: 0 auto; line-height: 0; touch-action: none; }
+.mask-stage img { width: 100%; display: block; border-radius: 12px; user-select: none; -webkit-user-drag: none; }
+.mask-stage canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.55; touch-action: none; cursor: crosshair; border-radius: 12px; }
+.mask-tools { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: center; margin-top: 18px; }
+.mask-tools label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+</style>
 </head>
 
 <body>
@@ -1040,6 +1046,42 @@ footer p {
     capture="environment"
     hidden
 >
+
+        </section>
+
+
+        <section class="workspace" id="maskSection" style="display:none;">
+
+            <div class="section-heading">
+
+                <div class="step-number">
+                    &#9998;
+                </div>
+
+                <div>
+                    <h2>Отметьте пол</h2>
+
+                    <p>
+                        Закрасьте пальцем или мышкой пол,
+                        который нужно заменить.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="mask-stage">
+                <img id="maskPhoto" alt="Фото для разметки пола">
+                <canvas id="maskCanvas"></canvas>
+            </div>
+
+            <div class="mask-tools">
+                <label>
+                    Кисть
+                    <input type="range" id="brushSize" min="2" max="15" value="6">
+                </label>
+                <button type="button" class="secondary-button" id="eraserButton" onclick="toggleMaskEraser()">Ластик</button>
+                <button type="button" class="secondary-button" onclick="clearMask()">Стереть всё</button>
+            </div>
 
         </section>
 
@@ -1665,6 +1707,8 @@ function handleRoomFile(file) {
 
     uploadContent.style.display = "none";
     uploadArea.classList.add("has-image");
+
+    initMaskEditor(file);
 }
 
 roomInput.addEventListener("change", function () {
@@ -1679,6 +1723,150 @@ cameraInput.addEventListener("change", function () {
     // =========================
     // Выбор товара
     // =========================
+
+    // =========================
+    // Разметка пола (маска)
+    // =========================
+
+    const maskSection = document.getElementById("maskSection");
+    const maskPhoto = document.getElementById("maskPhoto");
+    const maskCanvas = document.getElementById("maskCanvas");
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    const brushSizeInput = document.getElementById("brushSize");
+    const eraserButton = document.getElementById("eraserButton");
+
+    const MASK_MAX_SIDE = 1024;
+    let maskHasPaint = false;
+    let maskErase = false;
+    let maskDrawing = false;
+    let maskLastPoint = null;
+
+    function initMaskEditor(file) {
+        maskSection.style.display = "block";
+        maskHasPaint = false;
+        maskErase = false;
+        eraserButton.textContent = "Ластик";
+
+        maskPhoto.onload = function () {
+            const w = maskPhoto.naturalWidth;
+            const h = maskPhoto.naturalHeight;
+            const k = Math.min(1, MASK_MAX_SIDE / Math.max(w, h));
+            maskCanvas.width = Math.round(w * k);
+            maskCanvas.height = Math.round(h * k);
+            maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        };
+
+        maskPhoto.src = URL.createObjectURL(file);
+    }
+
+    function hideMaskEditor() {
+        maskSection.style.display = "none";
+        maskHasPaint = false;
+        maskPhoto.removeAttribute("src");
+        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    }
+
+    function clearMask() {
+        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        maskHasPaint = false;
+    }
+
+    function toggleMaskEraser() {
+        maskErase = !maskErase;
+        eraserButton.textContent = maskErase ? "Кисть" : "Ластик";
+    }
+
+    function maskPoint(e) {
+        const r = maskCanvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - r.left) * maskCanvas.width / r.width,
+            y: (e.clientY - r.top) * maskCanvas.height / r.height
+        };
+    }
+
+    function drawMaskStroke(a, b) {
+        maskCtx.lineCap = "round";
+        maskCtx.lineJoin = "round";
+        maskCtx.lineWidth = maskCanvas.width * brushSizeInput.value / 100;
+
+        if (maskErase) {
+            maskCtx.globalCompositeOperation = "destination-out";
+            maskCtx.strokeStyle = "rgba(0,0,0,1)";
+        } else {
+            maskCtx.globalCompositeOperation = "source-over";
+            maskCtx.strokeStyle = "rgba(255,40,40,1)";
+            maskHasPaint = true;
+        }
+
+        maskCtx.beginPath();
+        maskCtx.moveTo(a.x, a.y);
+        maskCtx.lineTo(b.x, b.y);
+        maskCtx.stroke();
+    }
+
+    maskCanvas.addEventListener("pointerdown", function (e) {
+        e.preventDefault();
+        maskCanvas.setPointerCapture(e.pointerId);
+        maskDrawing = true;
+        maskLastPoint = maskPoint(e);
+        drawMaskStroke(maskLastPoint, maskLastPoint);
+    });
+
+    maskCanvas.addEventListener("pointermove", function (e) {
+        if (!maskDrawing) return;
+        const p = maskPoint(e);
+        drawMaskStroke(maskLastPoint, p);
+        maskLastPoint = p;
+    });
+
+    ["pointerup", "pointercancel"].forEach(function (name) {
+        maskCanvas.addEventListener(name, function () {
+            maskDrawing = false;
+        });
+    });
+
+    // Чёрно-белая маска для сервера: белое = пол. Если ничего не закрашено, вернёт null.
+    function getMaskBlob() {
+        return new Promise(function (resolve) {
+
+            if (!maskHasPaint) {
+                resolve(null);
+                return;
+            }
+
+            const w = maskCanvas.width;
+            const h = maskCanvas.height;
+            const src = maskCtx.getImageData(0, 0, w, h);
+
+            const out = document.createElement("canvas");
+            out.width = w;
+            out.height = h;
+
+            const outCtx = out.getContext("2d");
+            const dst = outCtx.createImageData(w, h);
+
+            let painted = 0;
+
+            for (let i = 0; i < src.data.length; i += 4) {
+                const v = src.data[i + 3] > 127 ? 255 : 0;
+                dst.data[i] = v;
+                dst.data[i + 1] = v;
+                dst.data[i + 2] = v;
+                dst.data[i + 3] = 255;
+                if (v) painted++;
+            }
+
+            if (painted === 0) {
+                resolve(null);
+                return;
+            }
+
+            outCtx.putImageData(dst, 0, 0);
+            out.toBlob(function (blob) {
+                resolve(blob);
+            }, "image/png");
+        });
+    }
 
     console.log("SELECT PRODUCT FUNCTION LOADED");
         function selectProduct(element, type) {
@@ -1772,6 +1960,12 @@ cameraInput.addEventListener("change", function () {
             "skirting",
             selectedSkirting.querySelector(".product-name").textContent
         );
+
+        const maskBlob = await getMaskBlob();
+
+        if (maskBlob) {
+            formData.append("mask", maskBlob, "mask.png");
+        }
 
 
         try {
@@ -1880,6 +2074,8 @@ cameraInput.addEventListener("change", function () {
 
         uploadContent.style.display = "block";
         uploadArea.classList.remove("has-image");
+
+        hideMaskEditor();
 
         // Скрываем результат
         document.getElementById("result").style.display = "none";
