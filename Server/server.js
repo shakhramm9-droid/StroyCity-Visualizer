@@ -21,6 +21,8 @@ const FORGE_URL = (process.env.FORGE_URL || "").replace(/\/+$/, "");
 const FORGE_AUTH = process.env.FORGE_AUTH || ""; // формат: логин:пароль
 const FORGE_CHECKPOINT = process.env.FORGE_CHECKPOINT || ""; // необязательно
 const FORGE_MAX_SIDE = parseInt(process.env.FORGE_MAX_SIDE || "512", 10);
+const FORGE_STEPS = parseInt(process.env.FORGE_STEPS || "20", 10);
+const FINAL_MAX_SIDE = parseInt(process.env.FINAL_MAX_SIDE || "1600", 10);
 const USE_FORGE = process.env.USE_FORGE === "true" && FORGE_URL !== "";
 
 const PUBLIC_URL =
@@ -179,6 +181,18 @@ async function editImageWithGemini(imageBuffer, mimeType, prompt) {
 // Приводит фото и маску к одному размеру (кратному 16)
 async function prepareForForge(roomBuffer, maskBuffer) {
 
+    // Оригинал в хорошем размере (с него потом берётся вся комната, кроме пола)
+    const original = await sharp(roomBuffer)
+        .rotate()
+        .resize({
+            width: FINAL_MAX_SIDE,
+            height: FINAL_MAX_SIDE,
+            fit: "inside",
+            withoutEnlargement: true
+        })
+        .png()
+        .toBuffer({ resolveWithObject: true });
+
     const resized = await sharp(roomBuffer)
         .rotate() // учитывает поворот из EXIF
         .resize({
@@ -206,12 +220,47 @@ async function prepareForForge(roomBuffer, maskBuffer) {
         .png()
         .toBuffer();
 
-    return { roomPng, maskPng, width, height };
+    return { roomPng, maskPng, width, height, original };
+}
+
+// Вставляет сгенерированный пол в чёткий оригинал: комната остаётся резкой, меняется только пол
+async function blendIntoOriginal(original, maskBuffer, forgeBuffer) {
+
+    const W = original.info.width;
+    const H = original.info.height;
+
+    const floorRgb = await sharp(forgeBuffer)
+        .resize(W, H, { fit: "fill", kernel: "lanczos3" })
+        .removeAlpha()
+        .sharpen({ sigma: 0.8 })
+        .png()
+        .toBuffer();
+
+    const alpha = await sharp(maskBuffer)
+        .resize(W, H, { fit: "fill" })
+        .greyscale()
+        .threshold(128)
+        .blur(3)
+        .toColourspace("b-w")
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+    const floorLayer = await sharp(floorRgb)
+        .joinChannel(alpha.data, {
+            raw: { width: W, height: H, channels: 1 }
+        })
+        .png()
+        .toBuffer();
+
+    return sharp(original.data)
+        .composite([{ input: floorLayer }])
+        .png()
+        .toBuffer();
 }
 
 async function inpaintWithForge(roomBuffer, maskBuffer, prompt) {
 
-    const { roomPng, maskPng, width, height } =
+    const { roomPng, maskPng, width, height, original } =
         await prepareForForge(roomBuffer, maskBuffer);
 
     const payload = {
@@ -221,7 +270,7 @@ async function inpaintWithForge(roomBuffer, maskBuffer, prompt) {
         negative_prompt: "",
         width: width,
         height: height,
-        steps: 20,
+        steps: FORGE_STEPS,
         cfg_scale: 1,
         distilled_cfg_scale: 3.5,
         sampler_name: "Euler",
@@ -275,7 +324,14 @@ async function inpaintWithForge(roomBuffer, maskBuffer, prompt) {
         throw new Error("Forge не вернул изображение");
     }
 
-    return Buffer.from(data.images[0], "base64");
+    const forgeBuffer = Buffer.from(data.images[0], "base64");
+
+    try {
+        return await blendIntoOriginal(original, maskBuffer, forgeBuffer);
+    } catch (e) {
+        console.error("Не удалось вставить пол в оригинал, отдаём результат Forge как есть:", e.message);
+        return forgeBuffer;
+    }
 }
 
 // ==========================================
