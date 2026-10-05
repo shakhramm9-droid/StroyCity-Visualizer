@@ -22,6 +22,7 @@ const FORGE_AUTH = process.env.FORGE_AUTH || ""; // формат: логин:п�
 const FORGE_CHECKPOINT = process.env.FORGE_CHECKPOINT || ""; // необязательно
 const FORGE_MAX_SIDE = parseInt(process.env.FORGE_MAX_SIDE || "512", 10);
 const FORGE_STEPS = parseInt(process.env.FORGE_STEPS || "20", 10);
+const FORGE_REFINE_DENOISE = parseFloat(process.env.FORGE_REFINE_DENOISE || "0.4");
 const FINAL_MAX_SIDE = parseInt(process.env.FINAL_MAX_SIDE || "1600", 10);
 const USE_FORGE = process.env.USE_FORGE === "true" && FORGE_URL !== "";
 
@@ -258,7 +259,7 @@ async function blendIntoOriginal(original, maskBuffer, forgeBuffer) {
         .toBuffer();
 }
 
-async function inpaintWithForge(roomBuffer, maskBuffer, prompt) {
+async function inpaintWithForge(roomBuffer, maskBuffer, prompt, denoiseOverride) {
 
     const { roomPng, maskPng, width, height, original } =
         await prepareForForge(roomBuffer, maskBuffer);
@@ -275,7 +276,9 @@ async function inpaintWithForge(roomBuffer, maskBuffer, prompt) {
         distilled_cfg_scale: 3.5,
         sampler_name: "Euler",
         scheduler: "Simple",
-        denoising_strength: parseFloat(process.env.FORGE_DENOISE || "0.95"),
+        denoising_strength: (typeof denoiseOverride === "number")
+            ? denoiseOverride
+            : parseFloat(process.env.FORGE_DENOISE || "0.95"),
         inpainting_fill: 1,
         inpaint_full_res: false,
         inpainting_mask_invert: 0,
@@ -373,6 +376,12 @@ app.post("/visualize", uploadFields, async (req, res) => {
 
         let finalImageBuffer;
 
+        const isRefine = req.body.mode === "refine";
+
+        if (isRefine && !(USE_FORGE && maskFile)) {
+            return res.status(503).json({ error: "ИИ-улучшение сейчас недоступно" });
+        }
+
         if (USE_FORGE && maskFile) {
 
             // ---------- Путь Forge: только пол, по маске ----------
@@ -381,15 +390,32 @@ app.post("/visualize", uploadFields, async (req, res) => {
 
             const maskBuffer = fs.readFileSync(maskFile.path);
 
-            const floorPrompt =
-                "photorealistic interior photograph, " +
-                describeFloor(laminate) +
-                ", natural daylight, realistic perspective and soft shadows";
+            let floorPrompt;
 
+            if (isRefine) {
+                // Фото уже содержит выложенный пол: нейросеть только делает его реалистичным
+                floorPrompt =
+                    "photorealistic interior photograph, " +
+                    describeFloor(laminate) +
+                    ", realistic wood laminate floor with subtle glossy reflections, " +
+                    "natural daylight, soft shadows, sharp focus, high detail";
+            } else {
+                floorPrompt =
+                    "photorealistic interior photograph, " +
+                    describeFloor(laminate) +
+                    ", natural daylight, realistic perspective and soft shadows";
+            }
+
+            console.log("Режим:", isRefine ? "улучшение реализма" : "полная замена");
             console.log("Промпт:", floorPrompt);
 
             finalImageBuffer = await runExclusive(() =>
-                inpaintWithForge(imageBuffer, maskBuffer, floorPrompt)
+                inpaintWithForge(
+                    imageBuffer,
+                    maskBuffer,
+                    floorPrompt,
+                    isRefine ? FORGE_REFINE_DENOISE : undefined
+                )
             );
 
             console.log("Forge готов (плинтус пока не меняется).");
