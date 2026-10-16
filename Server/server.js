@@ -23,26 +23,40 @@ const FORGE_AUTH = process.env.FORGE_AUTH || ""; // формат: логин:п�
 const FORGE_CHECKPOINT = process.env.FORGE_CHECKPOINT || ""; // необязательно
 // Тип модели во Forge: "sd" (SD 1.5 / SDXL, подходит для 4 ГБ видеопамяти) или "flux"
 const FORGE_MODEL = (process.env.FORGE_MODEL || "sd").toLowerCase();
-const FORGE_MAX_SIDE = parseInt(process.env.FORGE_MAX_SIDE || "512", 10);
+// 512 - минимум, 640-768 - заметно чётче (для 4 ГБ видеопамяти ещё ок), 1024 - для мощного ноутбука
+const FORGE_MAX_SIDE = parseInt(process.env.FORGE_MAX_SIDE || "640", 10);
 const FORGE_STEPS = parseInt(process.env.FORGE_STEPS || "20", 10);
 const FORGE_CFG = parseFloat(process.env.FORGE_CFG || "6");
-const FORGE_REFINE_DENOISE = parseFloat(process.env.FORGE_REFINE_DENOISE || "0.3");
+// Сила ИИ при "улучшении": 0.3 = почти как заготовка, 0.5 = реалистично (рекомендуется), 0.7 = ИИ сильно перерисовывает
+const FORGE_REFINE_DENOISE = parseFloat(process.env.FORGE_REFINE_DENOISE || "0.5");
+// Сколько проходов ИИ: 1 = быстрее, 2 = второй мягкий проход добавляет чёткости (в 2 раза дольше)
+const FORGE_PASSES = Math.min(2, Math.max(1, parseInt(process.env.FORGE_PASSES || "1", 10) || 1));
+const FORGE_PASS2_DENOISE = parseFloat(process.env.FORGE_PASS2_DENOISE || "0.25");
 const FORGE_FULL_RES = process.env.FORGE_FULL_RES !== "false"; // "только маска" в большем разрешении
 const FORGE_TIMEOUT_MS = parseInt(process.env.FORGE_TIMEOUT_MS || "300000", 10);
 const FORGE_NEGATIVE = process.env.FORGE_NEGATIVE ||
-    "blurry, low quality, deformed, different floor pattern, rug, carpet, text, watermark, furniture changes";
+    "cartoon, illustration, painting, drawing, 3d render, cgi, flat colors, plastic, oversaturated, " +
+    "repeating texture, tiled pattern, blurry, low quality, deformed, rug, carpet, text, watermark, furniture changes";
 
 // Режим вклейки результата ИИ:
-// "light" - берём у ИИ только освещение (тени, блики), рисунок досок остаётся точно как в каталоге
-// "full"  - берём пол от ИИ целиком (рисунок может отличаться от товара)
-const BLEND_MODE = (process.env.BLEND_MODE || "light").toLowerCase();
-const LIGHT_BLUR = parseFloat(process.env.LIGHT_BLUR || "0.008"); // размытие света, доля от большей стороны
+// "hybrid" (по умолчанию) - пол берётся от ИИ (реализм, свет, блики, тени), а цвет подтягивается
+//                           к цвету товара из каталога, мелкие швы и зерно возвращаются из заготовки
+// "light"  - от ИИ берётся только освещение, пол остаётся заготовкой из браузера (самый "точный", но менее реалистичный)
+// "full"   - пол от ИИ целиком (рисунок и цвет могут отличаться от товара)
+const BLEND_MODE = (process.env.BLEND_MODE || "hybrid").toLowerCase();
+const COLOR_LOCK = parseFloat(process.env.COLOR_LOCK || "0.8");       // 0..1: насколько жёстко держим цвет товара
+const DETAIL_MIX = parseFloat(process.env.DETAIL_MIX || "0.5");       // 0..1: сколько мелких швов/зерна вернуть из заготовки
+const DETAIL_SIGMA = parseFloat(process.env.DETAIL_SIGMA || "2");     // размер "мелкого" в пикселях
+const LIGHT_BLUR = parseFloat(process.env.LIGHT_BLUR || "0.008"); // (режим light) размытие света, доля от большей стороны
 const LIGHT_GAIN_MIN = parseFloat(process.env.LIGHT_GAIN_MIN || "0.8");
 const LIGHT_GAIN_MAX = parseFloat(process.env.LIGHT_GAIN_MAX || "1.25");
-const LIGHT_DETAIL_MIX = parseFloat(process.env.LIGHT_DETAIL_MIX || "0"); // 0..1: сколько "живой" фактуры от ИИ подмешать
+const LIGHT_DETAIL_MIX = parseFloat(process.env.LIGHT_DETAIL_MIX || "0"); // (режим light) 0..1
 
 const RESULT_TTL_MS = parseInt(process.env.RESULT_TTL_MIN || "60", 10) * 60 * 1000;
 const MAX_PENDING = parseInt(process.env.MAX_PENDING || "3", 10);
+// Защита от спама: не больше N запросов с одного адреса за окно (0 = выключено)
+const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || "20", 10);
+const RATE_WINDOW_MS = parseInt(process.env.RATE_WINDOW_MIN || "10", 10) * 60 * 1000;
 const FINAL_MAX_SIDE = parseInt(process.env.FINAL_MAX_SIDE || "1600", 10);
 const USE_FORGE = process.env.USE_FORGE === "true" && FORGE_URL !== "";
 
@@ -135,6 +149,67 @@ app.use((req, res, next) => {
 });
 
 app.use("/uploads", express.static("uploads"));
+
+// Мягкая защита от спама (чтобы чужие люди не жгли вашу видеокарту)
+const rateHits = new Map();
+
+function clientIp(req) {
+    return (
+        req.headers["cf-connecting-ip"] ||
+        (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
+        req.socket.remoteAddress ||
+        "unknown"
+    );
+}
+
+function rateLimit(req, res, next) {
+    if (RATE_LIMIT_MAX <= 0) return next();
+    const ip = clientIp(req);
+    const now = Date.now();
+    const list = (rateHits.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS);
+    if (list.length >= RATE_LIMIT_MAX) {
+        return res.status(429).json({ error: "Слишком много запросов, попробуйте через несколько минут" });
+    }
+    list.push(now);
+    rateHits.set(ip, list);
+    next();
+}
+
+setInterval(function () {
+    const now = Date.now();
+    rateHits.forEach(function (list, ip) {
+        const fresh = list.filter(t => now - t < RATE_WINDOW_MS);
+        if (fresh.length) rateHits.set(ip, fresh); else rateHits.delete(ip);
+    });
+}, 5 * 60 * 1000);
+
+// Проверка: включён ли ИИ-компьютер (сайт показывает по ней "ИИ онлайн / офлайн")
+let forgeState = { ok: false, at: 0 };
+
+async function checkForge() {
+    if (!USE_FORGE) return false;
+    if (Date.now() - forgeState.at < 15000) return forgeState.ok;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    let ok = false;
+    try {
+        const r = await fetch(FORGE_URL + "/sdapi/v1/progress?skip_current_image=true", {
+            headers: forgeHeaders(),
+            signal: controller.signal
+        });
+        ok = r.ok;
+    } catch (e) {
+        ok = false;
+    } finally {
+        clearTimeout(timer);
+    }
+    forgeState = { ok: ok, at: Date.now() };
+    return ok;
+}
+
+app.get("/health", async (req, res) => {
+    res.json({ server: true, ai: await checkForge() });
+});
 
 app.get("/", (req, res) => {
     res.send(
@@ -304,23 +379,65 @@ async function transferLighting(originalPng, forgePng, W, H) {
         .toBuffer();
 }
 
+// Гибрид: пол от ИИ (реализм, свет, блики) + цвет товара + мелкие швы/зерно из заготовки.
+// 1) Цвет: общий коэффициент по каждому каналу тянет средний цвет ИИ-пола к цвету заготовки
+//    (локальные свет и тени от ИИ при этом сохраняются).
+// 2) Чёткость: ИИ работает в низком разрешении, поэтому тонкие швы и зерно добавляем из заготовки.
+async function hybridFloor(originalPng, aiPng, maskAlpha, W, H) {
+
+    const sigma = Math.max(0.5, DETAIL_SIGMA);
+
+    const [o, f, ob] = await Promise.all([
+        sharp(originalPng).removeAlpha().raw().toBuffer(),
+        sharp(aiPng).removeAlpha().raw().toBuffer(),
+        sharp(originalPng).removeAlpha().blur(sigma).raw().toBuffer()
+    ]);
+
+    const sumO = [0, 0, 0];
+    const sumF = [0, 0, 0];
+    let cnt = 0;
+
+    for (let i = 0; i < W * H; i++) {
+        if (maskAlpha[i] < 128) continue;
+        const p = i * 3;
+        for (let c = 0; c < 3; c++) {
+            sumO[c] += o[p + c];
+            sumF[c] += f[p + c];
+        }
+        cnt++;
+    }
+
+    const lock = Math.min(1, Math.max(0, COLOR_LOCK));
+    const mix = Math.min(1, Math.max(0, DETAIL_MIX));
+    const gain = [1, 1, 1];
+
+    if (cnt > 50) {
+        for (let c = 0; c < 3; c++) {
+            const g = Math.pow((sumO[c] / cnt + 1) / (sumF[c] / cnt + 1), lock);
+            gain[c] = Math.min(1.6, Math.max(0.6, g));
+        }
+    }
+
+    const out = Buffer.alloc(W * H * 3);
+
+    for (let i = 0; i < W * H; i++) {
+        const p = i * 3;
+        for (let c = 0; c < 3; c++) {
+            const v = f[p + c] * gain[c] + mix * (o[p + c] - ob[p + c]);
+            out[p + c] = Math.min(255, Math.max(0, Math.round(v)));
+        }
+    }
+
+    return sharp(out, { raw: { width: W, height: H, channels: 3 } })
+        .png()
+        .toBuffer();
+}
+
 // Вставляет результат в чёткий оригинал: комната остаётся резкой, меняется только пол
 async function blendIntoOriginal(original, maskBuffer, forgeBuffer) {
 
     const W = original.info.width;
     const H = original.info.height;
-
-    let floorRgb = await sharp(forgeBuffer)
-        .resize(W, H, { fit: "fill", kernel: "lanczos3" })
-        .removeAlpha()
-        .png()
-        .toBuffer();
-
-    if (BLEND_MODE === "light") {
-        floorRgb = await transferLighting(original.data, floorRgb, W, H);
-    } else {
-        floorRgb = await sharp(floorRgb).sharpen({ sigma: 0.8 }).png().toBuffer();
-    }
 
     const alpha = await sharp(maskBuffer)
         .resize(W, H, { fit: "fill" })
@@ -330,6 +447,20 @@ async function blendIntoOriginal(original, maskBuffer, forgeBuffer) {
         .toColourspace("b-w")
         .raw()
         .toBuffer({ resolveWithObject: true });
+
+    let floorRgb = await sharp(forgeBuffer)
+        .resize(W, H, { fit: "fill", kernel: "lanczos3" })
+        .removeAlpha()
+        .png()
+        .toBuffer();
+
+    if (BLEND_MODE === "light") {
+        floorRgb = await transferLighting(original.data, floorRgb, W, H);
+    } else if (BLEND_MODE === "hybrid") {
+        floorRgb = await hybridFloor(original.data, floorRgb, alpha.data, W, H);
+    } else {
+        floorRgb = await sharp(floorRgb).sharpen({ sigma: 0.8 }).png().toBuffer();
+    }
 
     const floorLayer = await sharp(floorRgb)
         .joinChannel(alpha.data, {
@@ -345,44 +476,7 @@ async function blendIntoOriginal(original, maskBuffer, forgeBuffer) {
         .toBuffer();
 }
 
-async function inpaintWithForge(roomBuffer, maskBuffer, prompt, denoiseOverride) {
-
-    const { roomPng, maskPng, width, height, original } =
-        await prepareForForge(roomBuffer, maskBuffer);
-
-    const isFlux = FORGE_MODEL === "flux";
-
-    const payload = {
-        init_images: [roomPng.toString("base64")],
-        mask: maskPng.toString("base64"),
-        prompt: prompt,
-        negative_prompt: isFlux ? "" : FORGE_NEGATIVE,
-        width: width,
-        height: height,
-        steps: FORGE_STEPS,
-        cfg_scale: isFlux ? 1 : FORGE_CFG,
-        sampler_name: isFlux ? "Euler" : "DPM++ 2M",
-        scheduler: isFlux ? "Simple" : "Karras",
-        denoising_strength: (typeof denoiseOverride === "number")
-            ? denoiseOverride
-            : parseFloat(process.env.FORGE_DENOISE || "0.95"),
-        inpainting_fill: 1,
-        inpaint_full_res: FORGE_FULL_RES,
-        inpaint_full_res_padding: 64,
-        inpainting_mask_invert: 0,
-        mask_blur: 4,
-        batch_size: 1,
-        n_iter: 1
-    };
-
-    if (isFlux) {
-        payload.distilled_cfg_scale = 3.5;
-    }
-
-    if (FORGE_CHECKPOINT) {
-        payload.override_settings = { sd_model_checkpoint: FORGE_CHECKPOINT };
-    }
-
+function forgeHeaders() {
     const headers = {
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "1"
@@ -393,6 +487,12 @@ async function inpaintWithForge(roomBuffer, maskBuffer, prompt, denoiseOverride)
             "Basic " + Buffer.from(FORGE_AUTH).toString("base64");
     }
 
+    return headers;
+}
+
+// Один запрос к Forge, возвращает картинку (Buffer)
+async function forgeImg2Img(payload) {
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FORGE_TIMEOUT_MS);
 
@@ -402,7 +502,7 @@ async function inpaintWithForge(roomBuffer, maskBuffer, prompt, denoiseOverride)
     try {
         response = await fetch(FORGE_URL + "/sdapi/v1/img2img", {
             method: "POST",
-            headers: headers,
+            headers: forgeHeaders(),
             body: JSON.stringify(payload),
             signal: controller.signal
         });
@@ -436,7 +536,73 @@ async function inpaintWithForge(roomBuffer, maskBuffer, prompt, denoiseOverride)
         throw new Error("Forge не вернул изображение");
     }
 
-    const forgeBuffer = Buffer.from(data.images[0], "base64");
+    return Buffer.from(data.images[0], "base64");
+}
+
+// Описание для ИИ: реализм + описание конкретного ламината
+function buildFloorPrompt(laminate) {
+    return (
+        "RAW photo of a real room interior, " +
+        describeFloor(laminate) +
+        ", individual planks with subtle natural tone variation, thin dark beveled seams between planks, " +
+        "realistic wood grain, soft natural daylight, gentle reflections of window light on the floor, " +
+        "realistic perspective, soft contact shadows along the walls, sharp focus, high detail, photorealistic"
+    );
+}
+
+async function inpaintWithForge(roomBuffer, maskBuffer, prompt, denoiseOverride) {
+
+    const { roomPng, maskPng, width, height, original } =
+        await prepareForForge(roomBuffer, maskBuffer);
+
+    const isFlux = FORGE_MODEL === "flux";
+    const isRefine = typeof denoiseOverride === "number";
+
+    const payload = {
+        init_images: [roomPng.toString("base64")],
+        mask: maskPng.toString("base64"),
+        prompt: prompt,
+        negative_prompt: isFlux ? "" : FORGE_NEGATIVE,
+        width: width,
+        height: height,
+        steps: FORGE_STEPS,
+        cfg_scale: isFlux ? 1 : FORGE_CFG,
+        sampler_name: isFlux ? "Euler" : "DPM++ 2M",
+        scheduler: isFlux ? "Simple" : "Karras",
+        denoising_strength: isRefine
+            ? denoiseOverride
+            : parseFloat(process.env.FORGE_DENOISE || "0.95"),
+        inpainting_fill: 1,
+        inpaint_full_res: FORGE_FULL_RES,
+        inpaint_full_res_padding: 64,
+        inpainting_mask_invert: 0,
+        mask_blur: 4,
+        batch_size: 1,
+        n_iter: 1
+    };
+
+    if (isFlux) {
+        payload.distilled_cfg_scale = 3.5;
+    }
+
+    if (FORGE_CHECKPOINT) {
+        payload.override_settings = { sd_model_checkpoint: FORGE_CHECKPOINT };
+    }
+
+    // Проход 1: ИИ перерисовывает пол
+    let forgeBuffer = await forgeImg2Img(payload);
+
+    // Проход 2 (необязательно): мягкая доводка для чёткости
+    if (isRefine && FORGE_PASSES >= 2) {
+        try {
+            forgeBuffer = await forgeImg2Img(Object.assign({}, payload, {
+                init_images: [forgeBuffer.toString("base64")],
+                denoising_strength: FORGE_PASS2_DENOISE
+            }));
+        } catch (e) {
+            console.warn("Второй проход Forge не удался, оставляем первый:", e.message);
+        }
+    }
 
     try {
         return await blendIntoOriginal(original, maskBuffer, forgeBuffer);
@@ -455,7 +621,7 @@ const uploadFields = upload.fields([
     { name: "mask", maxCount: 1 }
 ]);
 
-app.post("/visualize", uploadFields, async (req, res) => {
+app.post("/visualize", rateLimit, uploadFields, async (req, res) => {
 
     console.log("");
     console.log("=================================");
@@ -504,23 +670,15 @@ app.post("/visualize", uploadFields, async (req, res) => {
 
             const maskBuffer = fs.readFileSync(maskFile.path);
 
-            let floorPrompt;
+            // Сила ИИ приходит с сайта (ползунок), ограничиваем разумными пределами
+            let refineDenoise = parseFloat(req.body.denoise);
+            refineDenoise = isFinite(refineDenoise)
+                ? Math.min(0.75, Math.max(0.2, refineDenoise))
+                : FORGE_REFINE_DENOISE;
 
-            if (isRefine) {
-                // Фото уже содержит выложенный пол: нейросеть только делает его реалистичным
-                floorPrompt =
-                    "photorealistic interior photograph, " +
-                    describeFloor(laminate) +
-                    ", same plank pattern and color, realistic natural lighting and soft shadows, " +
-                    "sharp focus, high detail, do not change the floor design";
-            } else {
-                floorPrompt =
-                    "photorealistic interior photograph, " +
-                    describeFloor(laminate) +
-                    ", natural daylight, realistic perspective and soft shadows";
-            }
+            const floorPrompt = buildFloorPrompt(laminate);
 
-            console.log("Режим:", isRefine ? "улучшение реализма" : "полная замена");
+            console.log("Режим:", isRefine ? "улучшение реализма (сила " + refineDenoise + ", вклейка " + BLEND_MODE + ")" : "полная замена");
             console.log("Промпт:", floorPrompt);
 
             finalImageBuffer = await runExclusive(() =>
@@ -528,7 +686,7 @@ app.post("/visualize", uploadFields, async (req, res) => {
                     imageBuffer,
                     maskBuffer,
                     floorPrompt,
-                    isRefine ? FORGE_REFINE_DENOISE : undefined
+                    isRefine ? refineDenoise : undefined
                 )
             );
 
